@@ -1,0 +1,416 @@
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.0.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.0.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.0.1/js/buttons.print.min.js"></script>
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.0.1/css/buttons.dataTables.min.css">
+
+<style>
+    .mb-1 {
+        margin-bottom: 3px;
+    }
+
+    .mb-2 {
+        margin-bottom: 6px;
+    }
+
+    .mb-3 {
+        margin-bottom: 10px;
+    }
+
+    .mt-1 {
+        margin-top: 3px;
+    }
+
+    .mt-2 {
+        margin-top: 6px;
+    }
+
+    .mt-3 {
+        margin-top: 10px;
+    }
+
+    .ext-open-panel {
+        position: fixed;
+        right: 0;
+        top: 0;
+        box-shadow: 6px 3px 4px 0px #000;
+        z-index: 999999;
+    }
+
+    .ext-open-panel span {
+        font-size: 20px;
+        cursor: pointer;
+        padding: 20px;
+        background-color: rgb(0, 161, 83);
+        color: white;
+    }
+
+    .ext-open-panel span:hover {
+        opacity: 0.9
+    }
+
+    #ext-sidebar {
+        width: 320px;
+        position: fixed;
+        right: -350px;
+        top: 0;
+        min-height: 100vh;
+        background-color: white;
+        padding: 10px;
+        box-shadow: 3px 0px 7px 3px #000;
+        z-index: 999999;
+        transition: all 0.5s ease;
+    }
+
+    .ext-header {
+        border-bottom: 1px solid #ccc;
+    }
+
+    #ext-sidebar.open {
+        right: 0;
+    }
+
+    .menu-icon span {
+        cursor: pointer;
+        font-size: 20px;
+        padding: 12px;
+        color: white;
+        background-color: rgb(161, 0, 0);
+    }
+
+    .menu-icon span:hover {
+        opacity: 0.9
+    }
+</style>
+
+<style>
+    .dataTables_wrapper:first-child {
+        margin-top: 60px;
+    }
+
+    #MathJax_Message {
+        z-index: 9999999;
+    }
+</style>
+
+<body>
+    <div class="ext-open-panel mt-2 " style="display: none;">
+        <span id="ext-sidebar-open" class="glyphicon glyphicon-th-list"></span>
+    </div>
+    <div id="ext-sidebar" class="open">
+        <div class="ext-header row mb-3">
+            <div class="col-xs-9 heading">
+                <h4>Questions Retrieval Panel</h4>
+            </div>
+            <div class="col-xs-3 menu-icon text-right">
+                <span id="ext-sidebar-close" class="glyphicon glyphicon-remove"></span>
+            </div>
+        </div>
+        <div id="ext-sidebar-content">
+            <button class="btn btn-success" id="retrieve">Retrieve Data</button>
+            <button class="btn btn-info disabled" id="download-excel-files">Download Excel Files</button>
+            <style>
+                .dataTables_wrapper:first-child {
+                    margin-top: 60px;
+                }
+
+                #MathJax_Message {
+                    z-index: 9999999;
+                }
+            </style>
+        </div>
+    </div>
+    <script>
+        $("#ext-sidebar-open").click(() => {
+            $(".ext-open-panel").hide();
+            $("#ext-sidebar").addClass("open")
+        })
+        $("#ext-sidebar-close").click(() => {
+            $(".ext-open-panel").show();
+            $("#ext-sidebar").removeClass("open")
+        })
+
+        let classes = `
+        <option value="0">Select  Class</option>
+        <option value="8">Class-6</option>
+        <option value="9">Class-7</option>
+        <option value="10">Class-8</option>
+        <option value="1">Class-9</option>
+        <option value="2">Class-10</option>
+        <option value="3">Class-11</option>
+        <option value="4">Class-12</option>
+         `
+        $("#class_id").html(classes)
+
+        $(document).on('click', '#retrieve', async function () {
+            $(".dataTables_wrapper").remove()
+            var unit = "";
+            var subject = $("#subject").val();
+            var class_id = $("#class_id").val();
+            var question_type = "3,2,1,0";
+            var id = "";
+            var Qtypes = {
+                /* MCQS: ["MCQs-Gen"],
+                SQ: ["SQs-Gen"],
+                LQ: ["LQs- الفاظ معنی", "LQs-با محاورہ ترجمہ", "LQs-Gen"] */
+            };
+            await $.ajax({
+                type: "POST",
+                url: "api/loadsubshortsofsubject",
+                data: {
+                    subject
+                },
+                success: async function (resp) {
+                    resp = JSON.parse(resp)
+                    if (!resp.data.subshorst) return
+                    let types = resp.data.subshorst
+                    for (let n = 0; n < types.length; n++) {
+                        Qtypes[types[n].q_type_shot] = Qtypes[types[n].q_type_shot] || []
+                        Qtypes[types[n].q_type_shot].push(types[n].sub_shot)
+                    }
+                }
+            })
+            console.log(Qtypes)
+            //return
+            //var type= "LQ";
+            var subshort = "LQs-Gen";
+            var q_ids = "";
+            var topics = '';
+
+            for (const [type, subshorts] of Object.entries(Qtypes)) {
+                for (let i = 0; i < subshorts.length; i++) {
+                    await $.ajax({
+                        type: "POST",
+                        url: "api/paper_question_relace",
+                        data: 'unit=' + unit + '&id=' + id + '&question_type=' + question_type + '&type=' + type + '&q_ids=' + q_ids + '&subshort=' + subshorts[i] + '&class_id=' + class_id + '&subject_id=' + subject + '&topics_ids=' + topics + '&status=1,2',
+                        dataType: "html",
+                        success: async function (resp) {
+                            resp = JSON.parse(resp);
+                            resp = resp.data;
+                            if (resp != "-1") {
+                                let elem_id = type + i;
+                                let htmldata = "<div id=" + elem_id + ">" + resp + "</div>";
+                                $('body').append(htmldata).fadeIn(1500, function () {
+                                    MathJax.Hub.Queue(["Typeset", MathJax.Hub, "q_list"]);
+                                });
+
+                                let current_topic = 'General';
+                                let data = '';
+                                data += "<table id='myTable_" + elem_id + "'>"
+                                data += "<thead>"
+                                data += "<tr>"
+                                data += "<th>e_question</th>"
+                                data += "<th>e_opt_a</th>"
+                                data += "<th>e_opt_b</th>"
+                                data += "<th>e_opt_c</th>"
+                                data += "<th>e_opt_d</th>"
+                                data += "<th>u_question</th>"
+                                data += "<th>u_opt_a</th>"
+                                data += "<th>u_opt_b</th>"
+                                data += "<th>u_opt_c</th>"
+                                data += "<th>u_opt_d</th>"
+                                data += "<th>correct_opt</th>"
+                                data += "<th>u_answer</th>"
+                                data += "<th>e_answer</th>"
+                                data += "<th>boards</th>"
+                                data += "<th>question_origin</th>"
+                                data += "<th>topic_title</th>"
+                                data += "</tr>"
+                                data += "</thead>"
+                                data += "<tbody>"
+
+                                await $('#' + elem_id + ' .questionrow').each(function () {
+                                    if ($(this).hasClass('topic')) {
+                                        current_topic = $(this).text();
+                                    } else {
+                                        var question = $(this).find('.question');
+                                        var choice = $(this).find('.choice');
+                                        var correct_opt = $(this).find('#ans').val();
+                                        if (correct_opt == null) {
+                                            correct_opt = ""
+                                        }
+                                        correct_opt = correct_opt.replaceAll('(', "")
+                                        correct_opt = correct_opt.replaceAll(')', "")
+                                        var question_urdu = question.find('div#q_urdu');
+                                        var que_img = question.find('div.ss-que-img').html();
+
+                                        var s_u_opt_a = choice.find('#choic_urdu_a');
+                                        var s_u_opt_b = choice.find('#choic_urdu_b');
+                                        var s_u_opt_c = choice.find('#choic_urdu_c');
+                                        var s_u_opt_d = choice.find('#choic_urdu_d');
+                                        var question_eng = question.find('div#q_eng');
+                                        /*question_eng = question_eng.replace('data-mathml="', "data-mathml='");
+                                            question_eng = question_eng.replace('</math>"', "</math>'");*/
+                                        var s_e_opt_a = choice.find('#choic_eng_a');
+                                        var s_e_opt_b = choice.find('#choic_eng_b');
+                                        var s_e_opt_c = choice.find('#choic_eng_c');
+                                        var s_e_opt_d = choice.find('#choic_eng_d');
+
+                                        var u_opt_a = "";
+                                        var u_opt_b = "";
+                                        var u_opt_c = "";
+                                        var u_opt_d = "";
+                                        var e_opt_a = "";
+                                        var e_opt_b = "";
+                                        var e_opt_c = "";
+                                        var e_opt_d = "";
+                                        var topic_title = current_topic
+                                        var question_origin = $(this).find('.qtypes').text();
+                                        if (s_u_opt_a.text().trim() == null || s_u_opt_a.text().trim() == '') {
+                                            if (s_e_opt_a.text().trim() != null && s_e_opt_a.text().trim() != '' && question_urdu.text().trim() != "" && question_urdu.text().trim() != null) {
+                                                u_opt_a = s_e_opt_a.html()
+                                            }
+                                        } else {
+                                            u_opt_a = s_u_opt_a.html()
+                                        }
+                                        if (s_u_opt_b.text().trim() == null || s_u_opt_b.text().trim() == '') {
+                                            if (s_e_opt_b.text().trim() != null && s_e_opt_b.text().trim() != '' && question_urdu.text().trim() != "" && question_urdu.text().trim() != null) {
+                                                u_opt_b = s_e_opt_b.html()
+                                            }
+                                        } else {
+                                            u_opt_b = s_u_opt_b.html()
+                                        }
+                                        if (s_u_opt_c.text().trim() == null || s_u_opt_c.text().trim() == '') {
+                                            if (s_e_opt_c.text().trim() != null && s_e_opt_c.text().trim() != '' && question_urdu.text().trim() != "" && question_urdu.text().trim() != null) {
+                                                u_opt_c = s_e_opt_c.html()
+                                            }
+                                        } else {
+                                            u_opt_c = s_u_opt_c.html()
+                                        }
+                                        if (s_u_opt_d.text().trim() == null || s_u_opt_d.text().trim() == '') {
+                                            if (s_e_opt_d.text().trim() != null && s_e_opt_d.text().trim() != '' && question_urdu.text().trim() != "" && question_urdu.text().trim() != null) {
+                                                u_opt_d = s_e_opt_d.html()
+                                            }
+                                        } else {
+                                            u_opt_d = s_u_opt_d.html()
+                                        }
+
+
+                                        if (s_e_opt_a.text().trim() == null || s_e_opt_a.text().trim() == '') {
+                                            if (s_u_opt_a.text().trim() != null && s_u_opt_a.text().trim() != '' && question_eng.text().trim() != "" && question_eng.text().trim() != null) {
+                                                e_opt_a = s_u_opt_a.html()
+                                            }
+                                        } else {
+                                            e_opt_a = s_e_opt_a.html()
+                                        }
+                                        if (s_e_opt_b.text().trim() == null || s_e_opt_b.text().trim() == '') {
+                                            if (s_u_opt_b.text().trim() != null && s_u_opt_b.text().trim() != '' && question_eng.text().trim() != "" && question_eng.text().trim() != null) {
+                                                e_opt_b = s_u_opt_b.html()
+                                            }
+                                        } else {
+                                            e_opt_b = s_e_opt_b.html()
+                                        }
+                                        if (s_e_opt_c.text().trim() == null || s_e_opt_c.text().trim() == '') {
+                                            if (s_u_opt_c.text().trim() != null && s_u_opt_c.text().trim() != '' && question_eng.text().trim() != "" && question_eng.text().trim() != null) {
+                                                e_opt_c = s_u_opt_c.html()
+                                            }
+                                        } else {
+                                            e_opt_c = s_e_opt_c.html()
+                                        }
+                                        if (s_e_opt_d.text().trim() == null || s_e_opt_d.text().trim() == '') {
+                                            if (s_u_opt_d.text().trim() != null && s_u_opt_d.text().trim() != '' && question_eng.text().trim() != "" && question_eng.text().trim() != null) {
+                                                e_opt_d = s_u_opt_d.html()
+                                            }
+                                        } else {
+                                            e_opt_d = s_e_opt_d.html()
+                                        }
+
+                                        if (question_eng.text().trim() != null && question_eng.text().trim() != "") {
+                                            question_eng = question_eng.html()
+                                        } else {
+                                            question_eng = ""
+                                        }
+
+                                        if (question_urdu.text().trim() != null && question_urdu.text().trim() != "") {
+                                            question_urdu = question_urdu.html()
+                                        } else {
+                                            question_urdu = ""
+                                        }
+                                        if (que_img == null || que_img == "" || que_img == undefined) {
+                                            que_img = ""
+                                        }
+
+                                        if (question_eng != "" || question_urdu != "" || (e_opt_a != "" && e_opt_b != "" && e_opt_c != "" && e_opt_d != "") || (u_opt_a != "" && u_opt_b != "" && u_opt_c != "" && u_opt_d != "")) {
+
+                                            data += "<tr><td>" + question_eng + "</td>";
+                                            data += "<td>" + e_opt_a + "</td>";
+                                            data += "<td>" + e_opt_b + "</td>";
+                                            data += "<td>" + e_opt_c + "</td>";
+                                            data += "<td>" + e_opt_d + "</td>";
+                                            data += "<td>" + question_urdu + "</td>";
+                                            data += "<td>" + u_opt_a + "</td>";
+                                            data += "<td>" + u_opt_b + "</td>";
+                                            data += "<td>" + u_opt_c + "</td>";
+                                            data += "<td>" + u_opt_d + "</td>";
+                                            data += "<td>" + correct_opt + "</td>";
+                                            data += "<td></td>"
+                                            data += "<td></td>"
+                                            data += "<td></td>"
+                                            data += "<td>" + question_origin + "</td>"
+                                            data += "<td>" + topic_title + "</td>"
+                                            data += "</tr>";
+                                        }
+                                    }
+
+                                });
+
+                                //End of Await and question function
+
+                                data += '</tbody></table>';
+
+                                $("body").prepend(data)
+                                $(elem_id).remove();
+                                await $('#myTable_' + elem_id).DataTable({
+                                    "pageLength": 1,
+                                    dom: 'Bfrtip',
+                                    buttons: [
+                                        //'copy', 'csv', 'excel', 'pdf', 'print',
+                                        /*{
+                                            extend: 'csvHtml5',
+                                            text: 'CSV HTML',
+                                            exportOptions: {
+                                                stripHtml: false
+                                            },
+                                            title: title + ' - ' + topic
+                                        },*/
+                                        {
+                                            extend: 'excelHtml5',
+                                            text: 'Excel HTML',
+                                            exportOptions: {
+                                                stripHtml: false
+                                            },
+                                            title: type + ' - ' + subshorts[i]
+                                        }
+                                    ]
+                                })
+                            }
+                            if($(".dataTables_wrapper .buttons-excel").length){
+                                $('#download-excel-files').removeClass("disabled")
+                            }
+                        },
+                        error: function (e) {
+                            alert('Error: ' + e);
+                        }
+                    });
+                }
+            }
+        })
+
+        //Excel File Download
+        $(document).on('click','#download-excel-files', async function(){
+     $(".dataTables_wrapper .buttons-excel").each(function(i, that){
+            setTimeout(function(){
+                $(that).click();
+            }, 1000*i );
+        })
+    });
+    </script>
+</body>
