@@ -89,6 +89,19 @@
     .menu-icon span:hover {
         opacity: 0.9
     }
+    .instructions-panel{
+        background-color: #eee;
+    }
+    .instructions-tab{
+        text-align:center;
+        font-weight: bold;
+        padding:10px;
+        cursor: pointer;
+    }
+    #instructions{
+        padding: 20px 0;
+        border-top: 1px solid #000;
+    }
 </style>
 
 <style>
@@ -108,24 +121,23 @@
     <div id="ext-sidebar" class="open">
         <div class="ext-header row mb-3">
             <div class="col-xs-9 heading">
-                <h4>Questions Retrieval Panel</h4>
+                <h4>BrainBooks Retrieval Panel</h4>
             </div>
             <div class="col-xs-3 menu-icon text-right">
                 <span id="ext-sidebar-close" class="glyphicon glyphicon-remove"></span>
             </div>
         </div>
+        <div class="mb-3 instructions-panel">
+            <div class="instructions-tab mb-3 mt-3" data-toggle="collapse" data-target="#instructions">Instructions</div>
+            <div id="instructions" class="collapse">
+            <ul>
+                <li>You must be login before accessing the panel</li>
+            </ul>
+            </div>
+        </div>
         <div id="ext-sidebar-content">
             <button class="btn btn-success" id="retrieve">Retrieve Data</button>
             <button class="btn btn-info disabled" id="download-excel-files">Download Excel Files</button>
-            <style>
-                .dataTables_wrapper:first-child {
-                    margin-top: 60px;
-                }
-
-                #MathJax_Message {
-                    z-index: 9999999;
-                }
-            </style>
         </div>
     </div>
     <script>
